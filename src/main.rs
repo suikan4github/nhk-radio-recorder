@@ -1,0 +1,69 @@
+// NHKラジオのリアルタイム・ストリーミングを保存する
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete;
+use nhk_radio_recorder::{RadioStation, get_station_url};
+
+/// コマンドライン引数の定義
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    /// エアチェックを行う
+    Aircheck {
+        /// 放送局
+        #[arg(value_enum, long, short)]
+        station: RadioStation,
+        /// 番組名
+        #[arg(long, short)]
+        program: String,
+        /// 番組の長さ[分]
+        #[arg(long, short, default_value = "60")]
+        duration: u32,
+    },
+    /// コマンドライン補完を生成
+    Completion {
+        /// 補完の種類
+        #[arg(value_enum, long, short)]
+        shell: clap_complete::Shell,
+    },
+}
+
+/// 引数を解析するための構造体
+#[derive(Parser, Debug)]
+#[command(version, about)]
+struct Cli {
+    /// コマンドライン引数
+    #[command(subcommand)]
+    command: Commands,
+}
+
+fn main() {
+    // コマンドライン引数を解析
+    let cli = Cli::parse();
+
+    let _ = nhk_radio_recorder::fetch_stream_xml();
+    // コマンドライン引数の解析
+    match cli.command {
+        Commands::Aircheck {
+            station,
+            program,
+            duration,
+        } => {
+            let station_url = get_station_url(station);
+
+            println!(
+                "番組名: {}, 長さ: {}分, URL: {}",
+                program, duration, station_url
+            );
+        }
+        Commands::Completion { shell } => {
+            // コマンドライン引数の体系をclapが解析するための構造体を生成する。
+            let mut cmd = Cli::command();
+            // 補完用のshellスクリプトを生成する。
+            clap_complete::generate(
+                shell,
+                &mut cmd,
+                env!("CARGO_PKG_NAME"),
+                &mut std::io::stdout(),
+            );
+        }
+    }
+}

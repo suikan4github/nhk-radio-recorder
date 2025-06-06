@@ -1,0 +1,13 @@
+[package]
+name = "nhk-radio-recorder"
+authors = ["Seiichi Horie"]
+version = "0.1.0"
+edition = "2024"
+description = "らじるらじるのリアルタイム・ストリーミングを保存する"
+
+[dependencies]
+clap = { version = "4.x", features = ["derive"] }
+clap_complete = "4.x"
+reqwest = {version = "0.12", features=["json", "blocking"]}
+bytes = "1.0"
+url = "2.5.4"
