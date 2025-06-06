@@ -6,9 +6,10 @@ edition = "2024"
 description = "らじるらじるのリアルタイム・ストリーミングを保存する"
 
 [dependencies]
+# CLI argument parser
 clap = { version = "4.x", features = ["derive"] }
 clap_complete = "4.x"
-reqwest = {version = "0.12", features=["json", "blocking"]}
-bytes = "1.0"
-url = "2.5.4"
+# Getting object through internet
+reqwest = {version = "0.12", features=["blocking"]}
+# XML parser
 quick-xml = "0.37"
