@@ -11,3 +11,4 @@ clap_complete = "4.x"
 reqwest = {version = "0.12", features=["json", "blocking"]}
 bytes = "1.0"
 url = "2.5.4"
+quick-xml = "0.37"

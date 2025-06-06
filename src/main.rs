@@ -1,7 +1,7 @@
 // NHKラジオのリアルタイム・ストリーミングを保存する
 use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete;
-use nhk_radio_recorder::{RadioStation, get_station_url};
+use nhk_radio_recorder::{RadioChannel, RadioLocation};
 
 /// コマンドライン引数の定義
 #[derive(Subcommand, Debug)]
@@ -10,10 +10,16 @@ pub enum Commands {
     Aircheck {
         /// 放送局
         #[arg(value_enum, long, short)]
-        station: RadioStation,
+        location: RadioLocation,
+
+        /// チャンネル
+        #[arg(value_enum, long, short)]
+        channel: RadioChannel,
+
         /// 番組名
         #[arg(long, short)]
         program: String,
+
         /// 番組の長さ[分]
         #[arg(long, short, default_value = "60")]
         duration: u32,
@@ -39,16 +45,15 @@ fn main() {
     // コマンドライン引数を解析
     let cli = Cli::parse();
 
-    let _ = nhk_radio_recorder::fetch_stream_xml();
     // コマンドライン引数の解析
     match cli.command {
         Commands::Aircheck {
-            station,
+            location,
+            channel,
             program,
             duration,
         } => {
-            let station_url = get_station_url(station);
-
+            let station_url = nhk_radio_recorder::get_station_url(location, channel);
             println!(
                 "番組名: {}, 長さ: {}分, URL: {}",
                 program, duration, station_url

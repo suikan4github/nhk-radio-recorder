@@ -1,114 +1,133 @@
-// NHKラジオのリアルタイム・ストリーミングを保存する
+use quick_xml::events::Event;
+use quick_xml::reader::Reader;
+
 use clap::ValueEnum;
-use reqwest::blocking::Client;
-use std::fs::File;
-use std::io::copy;
-use url::Url;
 
 /// ラジオ放送局のリスト
 #[derive(Debug, Clone, ValueEnum)]
-pub enum RadioStation {
-    NhkR1Sapporo,
-    NhkR1Sendai,
-    NhkR1Tokyo,
-    NhkR1Nagoya,
-    NhkR1Osaka,
-    NhkR1Hiroshima,
-    NhkR1Matsuyama,
-    NhkR1Fukuoka,
-    NhkFmSapporo,
-    NhkFmSendai,
-    NhkFmTokyo,
-    NhkFmNagoya,
-    NhkFmOsaka,
-    NhkFmHiroshima,
-    NhkFmMatsuyama,
-    NhkFmFukuoka,
+pub enum RadioLocation {
+    Sapporo,
+    Sendai,
+    Tokyo,
+    Nagoya,
+    Osaka,
+    Hiroshima,
+    Matsuyama,
+    Fukuoka,
+}
+
+/// ラジオチャンネルのリスト
+#[derive(Debug, Clone, ValueEnum)]
+pub enum RadioChannel {
+    NhkR1,
+    NhkFm,
     NhkR2,
 }
 
-/// ラジオ局に対応するURLを取得する関数
-/// 以下を参照 http://www.nhk.or.jp/radio/config/config_web.xml
-pub fn get_station_url(station: RadioStation) -> &'static str {
-    match station {
-        RadioStation::NhkR1Sapporo => {
-            "https://radio-stream.nhk.jp/hls/live/2023545/nhkradiruikr1/master.m3u8"
+impl RadioChannel {
+    /// チャンネルの名前を取得する
+    pub fn as_str(&self) -> &str {
+        match self {
+            RadioChannel::NhkR1 => "r1hls",
+            RadioChannel::NhkR2 => "r2hls",
+            RadioChannel::NhkFm => "fmhls",
         }
-        RadioStation::NhkR1Sendai => {
-            "https://radio-stream.nhk.jp/hls/live/2023543/nhkradiruhkr1/master.m3u8"
-        }
-        RadioStation::NhkR1Tokyo => {
-            "https://radio-stream.nhk.jp/hls/live/2023229/nhkradiruakr1/master.m3u8"
-        }
-        RadioStation::NhkR1Nagoya => {
-            "https://radio-stream.nhk.jp/hls/live/2023510/nhkradiruckr1/master.m3u8"
-        }
-        RadioStation::NhkR1Osaka => {
-            "https://radio-stream.nhk.jp/hls/live/2023508/nhkradirubkr1/master.m3u8"
-        }
-        RadioStation::NhkR1Hiroshima => {
-            "https://radio-stream.nhk.jp/hls/live/2023512/nhkradirufkr1/master.m3u8"
-        }
-        RadioStation::NhkR1Matsuyama => {
-            "https://radio-stream.nhk.jp/hls/live/2023547/nhkradiruzkr1/master.m3u8"
-        }
-        RadioStation::NhkR1Fukuoka => {
-            "https://radio-stream.nhk.jp/hls/live/2023541/nhkradirulkr1/master.m3u8"
-        }
-        RadioStation::NhkFmSapporo => {
-            "https://radio-stream.nhk.jp/hls/live/2023546/nhkradiruikfm/master.m3u8"
-        }
-        RadioStation::NhkFmSendai => {
-            "https://radio-stream.nhk.jp/hls/live/2023544/nhkradiruhkfm/master.m3u8"
-        }
-        RadioStation::NhkFmTokyo => {
-            "https://radio-stream.nhk.jp/hls/live/2023507/nhkradiruakfm/master.m3u8"
-        }
-        RadioStation::NhkFmNagoya => {
-            "https://radio-stream.nhk.jp/hls/live/2023511/nhkradiruckfm/master.m3u8"
-        }
-        RadioStation::NhkFmOsaka => {
-            "https://radio-stream.nhk.jp/hls/live/2023509/nhkradirubkfm/master.m3u8"
-        }
-        RadioStation::NhkFmHiroshima => {
-            "https://radio-stream.nhk.jp/hls/live/2023513/nhkradirufkfm/master.m3u8"
-        }
-        RadioStation::NhkFmMatsuyama => {
-            "https://radio-stream.nhk.jp/hls/live/2023548/nhkradiruzkfm/master.m3u8"
-        }
-        RadioStation::NhkFmFukuoka => {
-            "https://radio-stream.nhk.jp/hls/live/2023542/nhkradirulkfm/master.m3u8"
-        }
-        RadioStation::NhkR2 => {
-            "https://radio-stream.nhk.jp/hls/live/2023501/nhkradiruakr2/master.m3u8"
+    }
+}
+
+impl RadioLocation {
+    pub fn as_str(&self) -> &str {
+        match self {
+            RadioLocation::Sapporo => "sapporo",
+            RadioLocation::Sendai => "sendai",
+            RadioLocation::Tokyo => "tokyo",
+            RadioLocation::Nagoya => "nagoya",
+            RadioLocation::Osaka => "osaka",
+            RadioLocation::Hiroshima => "hiroshima",
+            RadioLocation::Matsuyama => "matsuyama",
+            RadioLocation::Fukuoka => "fukuoka",
         }
     }
 }
 
 /// NHKのラジオストリームURL情報を取得してファイルに保存する
-pub fn fetch_stream_xml() -> Result<(), Box<dyn std::error::Error>> {
+pub fn fetch_stream_xml() -> String {
     // NHKのラジオストリームURL情報を取得するためのURL。
     let url_str = "https://www.nhk.or.jp/radio/config/config_web.xml";
-    let output_file_name = "config_web.xml";
 
-    // ストリーム情報を格納するファイル名。
-    let url = Url::parse(url_str).expect("It were a correct URL of the collection of stream URLs");
+    // URLからデータを取得する。この今回はXML形式のデータとわかっているので
+    // レスポンスを文字列として取得する。
+    // この値は関数の返り値になる。
+    reqwest::blocking::get(url_str)
+        .expect("It could get the response from the URL")
+        .text()
+        .expect("It could be converted to text")
+}
 
-    // HTTPクライアントを作成
-    let client = Client::new();
+pub fn get_station_url(location: RadioLocation, channel: RadioChannel) -> String {
+    let mut context_stack = Vec::new();
+    let xml_string = fetch_stream_xml();
+    let mut reader = Reader::from_str(&xml_string);
+    let mut buf = Vec::new();
 
-    // URLからデータを取得する。
-    let mut response = client
-        .get(url)
-        .send()
-        .expect("It had a working network connection");
+    let mut context = "".to_string();
+    let mut r1_url = "".to_string();
+    let mut r2_url = "".to_string();
+    let mut fm_url = "".to_string();
+    let mut area = "".to_string();
+    let result: String;
 
-    // レスポンスを格納するファイルを作成する。
-    let mut file = File::create(output_file_name).expect("It could create the output file");
+    loop {
+        match reader.read_event_into(&mut buf) {
+            Ok(Event::Start(ref e)) => {
+                context_stack.push(context.clone());
+                context = String::from_utf8_lossy(e.name().as_ref()).to_string();
+            }
 
-    // レスポンスの内容をファイルに書き込む。
-    copy(&mut response.text()?.as_bytes(), &mut file)
-        .expect("It could copy the response to the file");
+            Ok(Event::Text(e)) => {
+                let text = e.unescape().unwrap().to_string();
+                if context == "areajp" {
+                    println!("地域: {}", text);
+                } else if context == "area" {
+                    area = text;
+                }
+            }
+            Ok(Event::CData(e)) => {
+                let text = String::from_utf8_lossy(&e).to_ascii_lowercase().to_string();
+                if context == "r1hls" {
+                    r1_url = text;
+                } else if context == "r2hls" {
+                    r2_url = text;
+                } else if context == "fmhls" {
+                    fm_url = text;
+                }
+            }
+            Ok(Event::End(_)) => {
+                if context == "data" {
+                    if area == location.as_str().to_string() {
+                        result = match channel.as_str().to_string() {
+                            r if r == RadioChannel::NhkR1.as_str() => r1_url.clone(),
+                            r if r == RadioChannel::NhkR2.as_str() => r2_url.clone(),
+                            r if r == RadioChannel::NhkFm.as_str() => fm_url.clone(),
+                            _ => "".to_string(),
+                        };
+                        break;
+                    }
+                    r1_url.clear();
+                    r2_url.clear();
+                    fm_url.clear();
+                    area.clear();
+                }
+                context = context_stack.pop().unwrap_or_default();
+            }
+            Ok(Event::Eof) => {
+                panic!("Error: reached end of file before finding the expected end tag.")
+            }
+            Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
+            _ => (),
+        }
+        buf.clear();
+    }
 
-    Ok(())
+    result
 }
