@@ -13,3 +13,5 @@ clap_complete = "4.x"
 reqwest = {version = "0.12", features=["blocking"]}
 # XML parser
 quick-xml = "0.37"
+chrono = "0.4.41"
+dirs = "6.0.0"

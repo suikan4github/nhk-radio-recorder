@@ -1,7 +1,9 @@
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 
+use chrono::Datelike;
 use clap::ValueEnum;
+use dirs;
 
 /// ラジオ放送局のリスト
 #[derive(Debug, Clone, ValueEnum)]
@@ -175,8 +177,7 @@ pub fn get_config_xml() -> String {
     let mut xdg_cache_home = match std::env::var("XDG_CACHE_HOME") {
         Ok(path) => std::path::PathBuf::from(path),
         Err(_) => {
-            // XDG_CACHE_HOMEが設定されていない場合は、デフォルトのキャッシュディレクトリを使用する。
-            let mut path = std::env::home_dir().expect("Could not get home directory");
+            let mut path = dirs::home_dir().expect("Could not get home directory");
             path.push(".cache");
             path
         }
