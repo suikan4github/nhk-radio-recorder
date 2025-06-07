@@ -51,7 +51,7 @@ impl RadioLocation {
 }
 
 /// NHKのラジオストリームURL情報を取得してファイルに保存する
-pub fn fetch_stream_xml() -> String {
+pub fn fetch_stream_xml_from_server() -> String {
     // NHKのラジオストリームURL情報を取得するためのURL。
     let url_str = "https://www.nhk.or.jp/radio/config/config_web.xml";
 
@@ -67,7 +67,7 @@ pub fn fetch_stream_xml() -> String {
 /// 指定された地域とチャンネルに基づいて、NHKラジオのストリームURLを取得する。
 pub fn get_station_url(location: RadioLocation, channel: RadioChannel) -> String {
     // NHKのラジオストリームURL情報を取得して、readerを作成する。
-    let xml_string = fetch_stream_xml();
+    let xml_string = fetch_stream_xml_from_server();
     let mut reader = Reader::from_str(&xml_string);
 
     // XMLを木構造解析するためのスタックとバッファ。
@@ -161,4 +161,58 @@ pub fn get_station_url(location: RadioLocation, channel: RadioChannel) -> String
         // 取得したURLを返す。
         result_url.unwrap()
     }
+}
+
+/// アプリケーション、キャッシュからconfig.xmlを取得する。
+/// アプリけションキャッシュは$XDG_CACHE_HOME/nhk-radio-recorder/config.xmlである。
+/// XDG_CACHE_HOMEが設定されていない場合は、デフォルトで~/.cache/nhk-radio-recorder/config.xmlを使用する。
+/// config.xmlが存在しない場合は、fetch_stream_xml_from_server()を呼び出して取得する。
+/// また、キャッシュにconfig.xmlが存在する場合でも、キャッシュの更新月が現在の月と異なる場合は、
+/// fetch_stream_xml_from_server()を呼び出して更新する。
+pub fn get_config_xml() -> String {
+    let app_name = env!("CARGO_PKG_NAME");
+    // XDG_CACHE_HOMEを取得する。
+    let mut xdg_cache_home = match std::env::var("XDG_CACHE_HOME") {
+        Ok(path) => std::path::PathBuf::from(path),
+        Err(_) => {
+            // XDG_CACHE_HOMEが設定されていない場合は、デフォルトのキャッシュディレクトリを使用する。
+            let mut path = std::env::home_dir().expect("Could not get home directory");
+            path.push(".cache");
+            path
+        }
+    };
+    // config.xmlのパスを設定する。
+    xdg_cache_home.push(app_name);
+    xdg_cache_home.push("config.xml");
+
+    // config.xmlが存在するか確認する。
+    if !xdg_cache_home.exists() {
+        // 存在しない場合は、fetch_stream_xml_from_server()を呼び出して取得する。
+        let xml_string = fetch_stream_xml_from_server();
+        // 取得したXMLをファイルに保存する。
+        std::fs::write(&xdg_cache_home, xml_string).expect("Could not write config.xml to cache");
+    }
+    // ここで、キャッシュの更新月を確認する。
+    // まず、現在の月を取得する。
+    let current_month = chrono::Local::now().month();
+    // 次に、キャッシュの更新月を取得する。
+    let metadata =
+        std::fs::metadata(&xdg_cache_home).expect("Could not get metadata of config.xml");
+    let modified_time = metadata
+        .modified()
+        .expect("Could not get modified time of config.xml");
+    let modified_month = chrono::DateTime::<chrono::Local>::from(modified_time).month();
+    // 現在の月とキャッシュの更新月が異なる場合は、fetch_stream_xml_from_server()を呼び出して更新する。
+    if current_month != modified_month {
+        // fetch_stream_xml_from_server()を呼び出して、最新のXMLを取得する。
+        let xml_string = fetch_stream_xml_from_server();
+        // 取得したXMLをファイルに保存する。
+        std::fs::write(&xdg_cache_home, xml_string).expect("Could not write config.xml to cache");
+    }
+
+    // config.xmlを読み込む。
+    let xml_string =
+        std::fs::read_to_string(&xdg_cache_home).expect("Could not read config.xml from cache");
+    // 取得したXMLを返す。
+    xml_string
 }
