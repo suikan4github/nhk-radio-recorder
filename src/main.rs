@@ -24,7 +24,7 @@ pub enum Commands {
         #[arg(long, short, default_value = "60")]
         duration: u32,
     },
-    /// コマンドライン補完を生成
+    /// コマンドライン補完スクリプトを生成
     Completion {
         /// 補完の種類
         #[arg(value_enum, long, short)]
