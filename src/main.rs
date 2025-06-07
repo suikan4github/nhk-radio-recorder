@@ -18,7 +18,7 @@ pub enum Commands {
 
         /// 番組名
         #[arg(long, short)]
-        program: String,
+        title: String,
 
         /// 番組の長さ[分]
         #[arg(long, short, default_value = "60")]
@@ -50,7 +50,7 @@ fn main() {
         Commands::Aircheck {
             location,
             channel,
-            program,
+            title: program,
             duration,
         } => {
             // 地域とチャンネルから適切なURLを取得する。
