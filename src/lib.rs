@@ -64,36 +64,49 @@ pub fn fetch_stream_xml() -> String {
         .expect("It could be converted to text")
 }
 
+/// 指定された地域とチャンネルに基づいて、NHKラジオのストリームURLを取得する。
 pub fn get_station_url(location: RadioLocation, channel: RadioChannel) -> String {
-    let mut context_stack = Vec::new();
+    // NHKのラジオストリームURL情報を取得して、readerを作成する。
     let xml_string = fetch_stream_xml();
     let mut reader = Reader::from_str(&xml_string);
-    let mut buf = Vec::new();
 
+    // XMLを木構造解析するためのスタックとバッファ。
+    // contextは、木の中の位置を表す。
+    let mut context_stack = Vec::new();
+    let mut buf = Vec::new();
     let mut context = "".to_string();
+
+    // URL、エリアなどを保持する変数
     let mut r1_url = "".to_string();
     let mut r2_url = "".to_string();
     let mut fm_url = "".to_string();
     let mut area = "".to_string();
-    let result: String;
+
+    // 取得したURLを保持する変数。
+    let result_url: Option<String>;
 
     loop {
+        // XMLのイベントを読み取る。
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(ref e)) => {
-                context_stack.push(context.clone());
+                // 開始タグの名前を取得して、現在のコンテキストを更新する。
+                context_stack.push(context);
                 context = String::from_utf8_lossy(e.name().as_ref()).to_string();
             }
 
             Ok(Event::Text(e)) => {
+                // XMLのテキストノードを取得して、現在のコンテキストに応じて変数に保存する。
+                // unescape()は、XMLエスケープ文字を元の文字に戻す。
                 let text = e.unescape().unwrap().to_string();
-                if context == "areajp" {
-                    println!("地域: {}", text);
-                } else if context == "area" {
+                if context == "area" {
                     area = text;
                 }
             }
             Ok(Event::CData(e)) => {
+                // CDATAセクションのテキストを取得して、現在のコンテキストに応じて変数に保存する。
+                // CDATAは、XMLの特殊文字を含むテキストをそのまま扱うために使用される。
                 let text = String::from_utf8_lossy(&e).to_ascii_lowercase().to_string();
+                // r1hls, r2hls, fmhlsのいずれかのコンテキストに応じてストリーミングURLを区別して保存する。
                 if context == "r1hls" {
                     r1_url = text;
                 } else if context == "r2hls" {
@@ -103,31 +116,49 @@ pub fn get_station_url(location: RadioLocation, channel: RadioChannel) -> String
                 }
             }
             Ok(Event::End(_)) => {
+                // dataタグの終了時に、地域が一致するか確認する。
                 if context == "data" {
                     if area == location.as_str().to_string() {
-                        result = match channel.as_str().to_string() {
-                            r if r == RadioChannel::NhkR1.as_str() => r1_url.clone(),
-                            r if r == RadioChannel::NhkR2.as_str() => r2_url.clone(),
-                            r if r == RadioChannel::NhkFm.as_str() => fm_url.clone(),
-                            _ => "".to_string(),
+                        // チャンネルに基づくURLを保存する。
+                        result_url = match channel.as_str().to_string() {
+                            r if r == RadioChannel::NhkR1.as_str() => Some(r1_url),
+                            r if r == RadioChannel::NhkR2.as_str() => Some(r2_url),
+                            r if r == RadioChannel::NhkFm.as_str() => Some(fm_url),
+                            _ => None,
                         };
+                        // ループ正常終了
                         break;
                     }
+                    // XMLの構造が正しいならば以下のクリーニングは無用。
+                    // ただし、何らかの理由で不正なXMLが返された場合に備えて、
+                    // 変数をクリアする。
                     r1_url.clear();
                     r2_url.clear();
                     fm_url.clear();
                     area.clear();
                 }
+                // 木をバックトラックするので、現在のコンテキストを捨ててスタックから
+                // 以前のコンテキストを取得する。
                 context = context_stack.pop().unwrap_or_default();
             }
+            // EOFは、XMLの終端を示す。異常終了。
             Ok(Event::Eof) => {
                 panic!("Error: reached end of file before finding the expected end tag.")
             }
+            // それ以外のエラーは、XMLの解析に失敗したことを示す。異常終了。
             Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
             _ => (),
         }
-        buf.clear();
     }
-
-    result
+    // エラーチェックして、結果のURLが取得できなかった場合はパニックを起こす。
+    if result_url.is_none() {
+        // これは指定されたチャンネルが存在しない場合のエラー。
+        panic!("Error: Specified channel error. Could be program logic error.");
+    } else if result_url.as_ref().unwrap().is_empty() {
+        // これは指定された地域とチャンネルに対してURLが空の場合のエラー。
+        panic!("Error: The URL for the specified location is empty");
+    } else {
+        // 取得したURLを返す。
+        result_url.unwrap()
+    }
 }

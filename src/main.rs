@@ -53,6 +53,7 @@ fn main() {
             program,
             duration,
         } => {
+            // 地域とチャンネルから適切なURLを取得する。
             let station_url = nhk_radio_recorder::get_station_url(location, channel);
             println!(
                 "番組名: {}, 長さ: {}分, URL: {}",
