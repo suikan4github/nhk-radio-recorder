@@ -76,11 +76,12 @@ fn get_config_xml_from_cache() -> String {
     const CACHE_SUBDIR: &'static str = ".cache";
     const APP_NAME: &'static str = env!("CARGO_PKG_NAME");
     const CACHE_FILE_NAME: &'static str = "config.xml";
-    // XDG_CACHE_HOMEを取得する。
+    // $XDG_CACHE_HOMEが示すパスを取得する。
     let mut xdg_cache_file = match std::env::var("XDG_CACHE_HOME") {
         Ok(path) => std::path::PathBuf::from(path),
         Err(_) => {
-            let mut path = dirs::home_dir().expect("Could not get home directory");
+            // XDG_CACHE_HOMEが設定されていない場合は、明示的にキャッシュパス ~/.cache を作る。
+            let mut path = dirs::home_dir().expect("Home directory must exist.");
             path.push(CACHE_SUBDIR);
             path
         }
@@ -89,9 +90,9 @@ fn get_config_xml_from_cache() -> String {
     xdg_cache_file.push(APP_NAME);
     xdg_cache_file.push(CACHE_FILE_NAME);
 
-    // config.xmlが存在するか確認する。
+    // キャッシュにconfig.xmlが存在するか確認する。
     if !xdg_cache_file.exists() {
-        // まずディレクトリが存在するか確認する。
+        // config.xmlが存在しない場合、そもそもキャッシュディレクトリが存在するか確認する。
         if let Some(parent) = xdg_cache_file.parent() {
             // ディレクトリが存在しない場合は、作成する。
             std::fs::create_dir_all(parent).expect("Cache directory could be created");
@@ -106,23 +107,22 @@ fn get_config_xml_from_cache() -> String {
     // まず、現在の月を取得する。
     let current_month = chrono::Local::now().month();
     // 次に、キャッシュの更新月を取得する。
-    let metadata =
-        std::fs::metadata(&xdg_cache_file).expect("Could not get metadata of config.xml");
+    let metadata = std::fs::metadata(&xdg_cache_file).expect("config.xml metadata could be read");
     let modified_time = metadata
         .modified()
-        .expect("Could not get modified time of config.xml");
+        .expect("config.xml modified time could be read");
     let modified_month = chrono::DateTime::<chrono::Local>::from(modified_time).month();
     // 現在の月とキャッシュの更新月が異なる場合は、fetch_stream_xml_from_server()を呼び出して更新する。
     if current_month != modified_month {
         // fetch_stream_xml_from_server()を呼び出して、最新のXMLを取得する。
         let xml_string = get_stream_xml_from_server();
         // 取得したXMLをファイルに保存する。
-        std::fs::write(&xdg_cache_file, xml_string).expect("Could not write config.xml to cache");
+        std::fs::write(&xdg_cache_file, xml_string).expect("con");
     }
 
     // config.xmlを読み込む。
     let xml_string =
-        std::fs::read_to_string(&xdg_cache_file).expect("Could not read config.xml from cache");
+        std::fs::read_to_string(&xdg_cache_file).expect("config.xml could be read from cache");
     // 取得したXMLを返す。
     xml_string
 }
