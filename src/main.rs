@@ -60,11 +60,12 @@ fn main() {
 
             // ffmpegコマンドにこのストリームURLを渡して、指定された番組名と長さでエアチェックを行う。
             let mut child = Command::new("ffmpeg")
+                .arg("-y") // 既存のファイルを上書きする
                 .arg("-i")
-                .arg(station_url)
+                .arg(station_url) // 入力ストリームURLを指定する
                 .arg("-c")
                 .arg("copy") // トランスエンコードせずにTSの中のデータをコピーする
-                .arg("-t")
+                .arg("-t") // 録音の長さ
                 .arg(format!("{}:00", duration)) // durationは分単位なので、秒に変換する必要がある
                 .arg(format!("{}.m4a", program)) // 出力ファイル名を指定する
                 .arg("-loglevel")
