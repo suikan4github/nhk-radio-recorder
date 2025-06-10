@@ -5,7 +5,8 @@ use chrono::Datelike;
 use clap::ValueEnum;
 use dirs;
 
-/// ラジオ放送局のリスト
+/// ラジオ放送地域のリスト。
+/// らじるらじるは、全国を8つの地域に分けて放送している。
 #[derive(Debug, Clone, ValueEnum)]
 pub enum RadioLocation {
     Sapporo,
@@ -18,7 +19,7 @@ pub enum RadioLocation {
     Fukuoka,
 }
 
-/// ラジオチャンネルのリスト
+/// ラジオチャンネルのリスト。第1、第2、FMの3つのチャンネルがある。
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub enum RadioChannel {
     NhkR1,
@@ -27,7 +28,8 @@ pub enum RadioChannel {
 }
 
 impl RadioChannel {
-    /// チャンネルの名前を取得する
+    /// チャンネルの名前を取得する。
+    /// これはXMLのタグ名と一致する。
     pub fn as_str(&self) -> &str {
         match self {
             RadioChannel::NhkR1 => "r1hls",
@@ -38,6 +40,8 @@ impl RadioChannel {
 }
 
 impl RadioLocation {
+    /// 地域の名前を取得する。
+    /// これはXMLのareaタグの値と一致する。
     pub fn as_str(&self) -> &str {
         match self {
             RadioLocation::Sapporo => "sapporo",
@@ -52,14 +56,14 @@ impl RadioLocation {
     }
 }
 
-/// NHKのラジオストリームURL情報を取得してファイルに保存する
+/// NHKのラジオストリームURL情報を収めたXMLデータを取得する
 fn get_stream_xml_from_server() -> String {
     // NHKのラジオストリームURL情報を取得するためのURL。
     let url_str = "https://www.nhk.or.jp/radio/config/config_web.xml";
 
     // URLからデータを取得する。この今回はXML形式のデータとわかっているので
     // レスポンスを文字列として取得する。
-    // この値は関数の返り値になる。
+    // この文字列は関数の返り値になる。
     reqwest::blocking::get(url_str)
         .expect("It could get the response from the URL")
         .text()
