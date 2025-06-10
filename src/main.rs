@@ -48,37 +48,42 @@ fn main() {
 
     // コマンドライン引数の解析
     match cli.command {
+        // エアチェックを行う
         Commands::Aircheck {
             location,
             channel,
             title: program,
             duration,
         } => {
-            // 地域とチャンネルから適切なURLを取得する。
+            // 地域とチャンネルから適切なストリームURLを取得する。
             let station_url = nhk_radio_recorder::get_station_url(location, channel);
 
-            // サブプロセスを起動する
+            // ffmpegコマンドにこのストリームURLを渡して、指定された番組名と長さでエアチェックを行う。
             let mut child = Command::new("ffmpeg")
+                .arg("-y") // 既存のファイルを上書きする
                 .arg("-i")
-                .arg(station_url)
+                .arg(station_url) // 入力ストリームURLを指定する
                 .arg("-c")
-                .arg("copy")
-                .arg("-t")
-                .arg(format!("{}:00", duration))
-                .arg(format!("{}.m4a", program))
+                .arg("copy") // トランスエンコードせずにTSの中のデータをコピーする
+                .arg("-t") // 録音の長さ
+                .arg(format!("{}:00", duration)) // durationは分単位なので、秒に変換する必要がある
+                .arg(format!("{}.m4a", program)) // 出力ファイル名を指定する
                 .arg("-loglevel")
-                .arg("error")
+                .arg("error") // エラーメッセージのみを表示する
                 .stderr(std::process::Stdio::from(
+                    // 標準エラー出力をファイルにリダイレクトする
                     std::fs::File::create(format!("{}.stderr.log", program)).unwrap(),
                 ))
                 .stdout(std::process::Stdio::from(
+                    // 標準出力をファイルにリダイレクトする
                     std::fs::File::create(format!("{}.stdout.log", program)).unwrap(),
                 ))
                 .spawn()
-                .expect("Failed to execute command");
+                .expect("Command::new() should start successfully");
             // サブプロセスの終了を待つ
-            let _ = child.wait().expect("Failed to wait for child process");
+            let _ = child.wait().expect("child.wait() should succeed");
         }
+        // コマンドライン補完スクリプトを生成する
         Commands::Completion { shell } => {
             // コマンドライン引数の体系をclapが解析するための構造体を生成する。
             let mut cmd = Cli::command();
