@@ -19,7 +19,7 @@ pub enum RadioLocation {
 }
 
 /// ラジオチャンネルのリスト
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Debug, Clone, Copy, ValueEnum)]
 pub enum RadioChannel {
     NhkR1,
     NhkFm,

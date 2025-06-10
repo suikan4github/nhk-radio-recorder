@@ -2,6 +2,7 @@
 use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete;
 use nhk_radio_recorder::{RadioChannel, RadioLocation};
+use std::process::Command;
 
 /// コマンドライン引数の定義
 #[derive(Subcommand, Debug)]
@@ -55,10 +56,26 @@ fn main() {
         } => {
             // 地域とチャンネルから適切なURLを取得する。
             let station_url = nhk_radio_recorder::get_station_url(location, channel);
-            println!(
-                "番組名: {}, 長さ: {}分, URL: {}",
-                program, duration, station_url
-            );
+
+            // サブプロセスを起動する
+            let mut child = Command::new("ffmpeg")
+                .arg("-i")
+                .arg(station_url)
+                .arg("-c")
+                .arg("copy")
+                .arg("-t")
+                .arg(format!("{}:00", duration))
+                .arg(format!("{}.m4a", program))
+                .stderr(std::process::Stdio::from(
+                    std::fs::File::create(format!("{}.stderr.log", program)).unwrap(),
+                ))
+                .stdout(std::process::Stdio::from(
+                    std::fs::File::create(format!("{}.stdout.log", program)).unwrap(),
+                ))
+                .spawn()
+                .expect("Failed to execute command");
+            // サブプロセスの終了を待つ
+            let _ = child.wait().expect("Failed to wait for child process");
         }
         Commands::Completion { shell } => {
             // コマンドライン引数の体系をclapが解析するための構造体を生成する。
