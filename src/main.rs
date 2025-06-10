@@ -66,6 +66,8 @@ fn main() {
                 .arg("-t")
                 .arg(format!("{}:00", duration))
                 .arg(format!("{}.m4a", program))
+                .arg("-loglevel")
+                .arg("error")
                 .stderr(std::process::Stdio::from(
                     std::fs::File::create(format!("{}.stderr.log", program)).unwrap(),
                 ))
