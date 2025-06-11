@@ -3,6 +3,8 @@ use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete;
 use nhk_radio_recorder::{RadioChannel, RadioLocation};
 use std::process::Command;
+use std::time::Duration;
+use wait_timeout::ChildExt; // This import is necessary for .wait_timeout()
 
 /// コマンドライン引数の定義
 #[derive(Subcommand, Debug)]
@@ -87,7 +89,18 @@ fn main() {
                 .spawn()
                 .expect("Command::new() should start successfully");
             // サブプロセスの終了を待つ
-            let _ = child.wait().expect("child.wait() should succeed");
+            let timeout = Duration::from_secs(60 * duration as u64 + 10); // 10秒余裕
+            match child.wait_timeout(timeout).expect("wait_timeout failed") {
+                Some(_status) => {
+                    // プロセス正常終了。
+                    // 特に何もしない。
+                }
+                None => {
+                    // タイムアウト
+                    child.kill().expect("failed to kill process");
+                    println!("Process killed due to timeout");
+                }
+            }
         }
         // コマンドライン補完スクリプトを生成する
         Commands::Completion { shell } => {
