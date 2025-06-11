@@ -8,6 +8,8 @@ History of the project development
 ### Deprecated
 ### Removed
 ### Fixed
+- [Issue #2](https://github.com/suikan4github/nhk-radio-recorder/issues/2) Error in the pull function.
+
 ### Security
 ### Known Issue
 
