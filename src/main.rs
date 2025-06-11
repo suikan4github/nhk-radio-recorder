@@ -70,6 +70,12 @@ fn main() {
                 .arg(format!("{}.m4a", program)) // 出力ファイル名を指定する
                 .arg("-loglevel")
                 .arg("error") // エラーメッセージのみを表示する
+                .arg("-reconnect") // 再接続を有効にする
+                .arg("1")
+                .arg("-reconnect_at_eof") // EOFで再接続を有効にする
+                .arg("1")
+                .arg("-reconnect_on_network_error") // ネットワークエラーで再接続を有効にする
+                .arg("1")
                 .stderr(std::process::Stdio::from(
                     // 標準エラー出力をファイルにリダイレクトする
                     std::fs::File::create(format!("{}.stderr.log", program)).unwrap(),
