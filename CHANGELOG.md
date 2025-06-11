@@ -4,6 +4,8 @@ History of the project development
 ## [Unreleased] yyyy-mm-zz
 
 ### Added
+- [Issue #3](https://github.com/suikan4github/nhk-radio-recorder/issues/3) Need timeout for sub-process.
+
 ### Changed
 ### Deprecated
 ### Removed
