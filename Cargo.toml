@@ -1,5 +1,5 @@
 [package]
-name = "nhk-radio-recorder"
+name = "get-nhk-radio-url"
 authors = ["Seiichi Horie"]
 version = "1.0.0"
 edition = "2024"
@@ -15,4 +15,3 @@ reqwest = {version = "0.12", features=["blocking"]}
 quick-xml = "0.37"
 chrono = "0.4.41"
 dirs = "6.0.0"
-wait-timeout = "0.2.1"
