@@ -65,6 +65,6 @@ rm "${RECORDING_PATH}.aac"
 
 # 5つ目の引数が指定されている場合、mailxに録音ファイルを添付してメールを送信し、ファイルを削除する
 if [ -n "$MAILADDRESS" ]; then
-    echo "録音が完了しました: $FILENAME" | mailx -s "nhk-radio-recorder ${TITLE}" -a "$RECORDING_PATH" "$MAILADDRESS"
+    echo "録音が完了しました: $FILENAME" | mailx -s "nhk-radio-recorder ${TITLE}" -A "$RECORDING_PATH" "$MAILADDRESS"
     rm "$RECORDING_PATH"
 fi
