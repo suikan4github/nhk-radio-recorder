@@ -1,5 +1,5 @@
 [package]
-name = "get-nhk-radio-url"
+name = "get-nhk-radio-livestream-url"
 authors = ["Seiichi Horie"]
 version = "1.0.0"
 edition = "2024"

@@ -377,7 +377,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "get-nhk-radio-url"
+name = "get-nhk-radio-livestream-url"
 version = "1.0.0"
 dependencies = [
  "chrono",

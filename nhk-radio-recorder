@@ -1,0 +1,70 @@
+#!/bin/sh
+
+# NHKラジオのエアチェックを行うスクリプト
+# エアチェック結果は ~/nhk-radio-recordingsに保存される。
+
+# このスクリプトは、同じディレクトリにget-nhk-radio-livestream-urlという
+# バイナリが存在することを前提としている。
+
+# 引数として次のものを受け取る
+# - location: 放送局の地域
+# - channel: チャンネル
+# - title: 番組名
+# - duration: 番組の長さ[分]
+# - mailaddress: メールアドレス（オプション）
+
+# 全体の流れ: 
+# 与えられたlocationとchannelに基づいてNHKのラジオストリームURLを取得し、
+# gstreamerを使用してストリームを録音する。このとき、録音ファイルは
+# durationより10秒長く録音する。そして、録音が終了したら
+# FFmpegを使用して、録音ファイルの長さをdurationに切り詰める。
+# GStreamerは与えられた時間でファイルをぶった切ってしまうので
+# FFmpegで切り詰める必要がある。
+
+# 引数の解析（引数は4あるいは5つ）
+if [ "$#" -lt 4 ] || [ "$#" -gt 5 ]; then
+    echo "Usage: $0 <location> <channel> <title> <duration> [mailaddress]"
+    echo "  <location>    : sapporo, sendai, tokyo, nagoya, osaka, hiroshima, matsuyama, fukuoka"
+    echo "  <channel>     : nhk-r1, nhk-fm, nhk-r2"
+    echo "  <title>       : The title of the program"
+    echo "  <duration>    : The duration of the program in minutes"
+    echo "  [mailaddress] : An optional email address to send the recording to"
+    exit 1
+fi
+
+# 引数を変数に格納
+LOCATION="$1"
+CHANNEL="$2"
+TITLE="$3"
+DURATION="$4"
+MAILADDRESS="$5"
+
+# 録音ファイルの名前を生成
+FILENAME="${TITLE}_$(date +%Y%m%d_%H%M%S).m4a"
+# 録音ファイルのパスを生成
+RECORDING_DIR="$HOME/nhk-radio-recordings"
+# 録音ディレクトリが存在しない場合は作成
+if [ ! -d "$RECORDING_DIR" ]; then
+    mkdir -p "$RECORDING_DIR"
+fi
+RECORDING_PATH="$RECORDING_DIR/$FILENAME"
+# ストリームURLを取得
+STREAM_URL=$(./get-nhk-radio-livestream-url aircheck --location "$LOCATION" --channel "$CHANNEL")
+# 録音の長さを計算
+DURATION_SECONDS=$((DURATION * 60 + 10)) # 10秒長く録音する
+# ストリームを録音
+timeout ${DURATION_SECONDS}s gst-launch-1.0 \
+    souphttpsrc location="${STREAM_URL}" \
+    ! hlsdemux \
+    ! filesink location="${RECORDING_PATH}.aac" sync=false async=false
+
+# 録音ファイルの長さを切り詰める
+ffmpeg -i "${RECORDING_PATH}.aac" -t 00:${DURATION}:00 -c copy "${RECORDING_PATH}"
+# aacファイルを削除
+rm "${RECORDING_PATH}.aac" 
+
+# 5つ目の引数が指定されている場合、mailxに録音ファイルを添付してメールを送信し、ファイルを削除する
+if [ -n "$MAILADDRESS" ]; then
+    echo "録音が完了しました: $FILENAME" | mailx -s "nhk-radio-recorder ${TITLE}" -a "$RECORDING_PATH" "$MAILADDRESS"
+    rm "$RECORDING_PATH"
+fi

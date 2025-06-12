@@ -1,7 +1,7 @@
 // NHKラジオのリアルタイム・ストリーミングURLを標準出力に出力する。
 use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete;
-use get_nhk_radio_url::{RadioChannel, RadioLocation};
+use get_nhk_radio_livestream_url::{RadioChannel, RadioLocation};
 
 /// コマンドライン引数の定義
 #[derive(Subcommand, Debug)]
@@ -44,7 +44,10 @@ fn main() {
         // 地域とチャンネルから適切なストリームURLを取得する。
         {
             // ストリームURLを出力する
-            println!("{}", get_nhk_radio_url::get_station_url(location, channel));
+            println!(
+                "{}",
+                get_nhk_radio_livestream_url::get_station_url(location, channel)
+            );
         }
 
         // コマンドライン補完スクリプトを生成する
