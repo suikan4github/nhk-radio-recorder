@@ -62,7 +62,7 @@ timeout ${DURATION_SECONDS}s gst-launch-1.0 \
     ! filesink location="${RECORDING_PATH}.aac" sync=false async=false > /dev/null 2> ${RECORDING_PATH}.log
 
 # 録音ファイルの長さを切り詰める
-ffmpeg -i "${RECORDING_PATH}.aac" -t 00:${DURATION}:00 -c copy "${RECORDING_PATH}" > /dev/null 2>> ${RECORDING_PATH}.log
+ffmpeg -i "${RECORDING_PATH}.aac" -t 00:${DURATION}:00 -c copy -loglevel error "${RECORDING_PATH}" > /dev/null 2>> ${RECORDING_PATH}.log
 # aacファイルを削除
 rm "${RECORDING_PATH}.aac" 
 
