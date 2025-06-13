@@ -16,56 +16,37 @@ nhk-radio-recorderは、NHKらじるらじるのリアルタイム・ストリ�
   - Ubuntu 24.04 LTS (WSL2)
   - Debian 12
 - Rustc 1.86.0
+- Gstreamer 1.24.2
 - FFmpeg 6.1
+
 
 Unixのディレクトリ構成に依存しているため、Windows環境では動作しないと思われます。MacOSでの動作は未確認です。
 
 ## 使い方
-使用にあたってはあらかじめユーザーがプログラムのビルドを行う必要があります。ビルドの方法については後で説明します。
+使用にあたってはあらかじめユーザーがプログラムのビルドとインストールを必要があります。それぞれの方法については後で説明します。
 ### ヘルプ
-ヘルプ画面を表示するには、コマンドラインから以下のコマンドを実行します。
+ヘルプ画面を表示するには、nhk-radio-recorderコマンドを引数なしで実行します。
 ```bash
-nhk-radio-recorder --help
+$ ./nhk-radio-recorder
+Usage: ./nhk-radio-recorder <location> <channel> <title> <duration> [mailaddress]
+  <location>    : sapporo, sendai, tokyo, nagoya, osaka, hiroshima, matsuyama, fukuoka
+  <channel>     : nhk-r1, nhk-fm, nhk-r2
+  <title>       : The title of the program
+  <duration>    : The duration of the program in minutes
+  [mailaddress] : An optional email address to send the recording to
 ```
 ### 録音
-録音を開始するには、airchekサブコマンドを使用します。aircheckサブコマンドの使用方法は、ヘルプから確認できます。
+録音を行うには、地域、チャンネル、タイトル、番組の長さ[分]を指定します。
 ```bash
-nhk-radio-recorder aircheck --help
+nhk-radio-recorder tokyo nhk-r1 "News at 7" 60
 ```
-実行すると以下のヘルプ画面が表示されます。
-```
-./nhk-radio-recorder aircheck --help
-エアチェックを行う
-
-Usage: nhk-radio-recorder aircheck [OPTIONS] --location <LOCATION> --channel <CHANNEL> --title <TITLE>
-
-Options:
-  -l, --location <LOCATION>  放送局 [possible values: sapporo, sendai, tokyo, nagoya, osaka, hiroshima, matsuyama, fukuoka]
-  -c, --channel <CHANNEL>    チャンネル [possible values: nhk-r1, nhk-fm, nhk-r2]
-  -t, --title <TITLE>        番組名
-  -d, --duration <DURATION>  番組の長さ[分] [default: 60]
-  -h, --help                 Print help
-```
-`-l`オプションに注意してください。ここは自分が住んでいる地域を指定します。地域は以下のいずれかを指定できます。
-- sapporo: 札幌
-- sendai: 仙台
-- tokyo: 東京
-- nagoya: 名古屋
-- osaka: 大阪
-- hiroshima: 広島
-- matsuyama: 松山
-- fukuoka: 福岡
-
-`-c`オプションは、チャンネルを指定します。以下のいずれかを指定できます。
-- nhk-r1: NHKラジオ第1
-- nhk-r2: NHKラジオ第2
-- nhk-fm: NHK-FM
-
-`-t`オプションは、番組名を指定します。これは録音したファイルの名前に使用されます。
-
-`-d`オプションは、番組の長さを分単位で指定します。デフォルトは60分です。
-
 録音結果は`.m4a`形式で保存されます。トランスコードはしないため、放送される音声の品質そのままに保存されます。
+
+なお、コマンドの末尾にメールアドレスを指定すると、m4aファイルを指定アドレスに送ります。
+```bash
+nhk-radio-recorder tokyo nhk-r1 "News at 7" 60 foo@example.com
+```
+メールで送る場合、生成したm4fファイルは自動的に削除されます。
 
 ### シェル補完
 シェル補完を有効にするには、以下のコマンドを実行します。
@@ -93,7 +74,18 @@ cd nhk-radio-recorder
 ```bash
 cargo build
 ```
-ビルドが成功すると、`target/release/nhk-radio-recorder`に実行可能ファイルが生成されます。このファイルを適当な場所に移動して、コマンドラインから実行できるようにしてください。
+ビルドが成功すると、`target/debug/get-nhk-radio-livestream-url`として実行可能ファイルが生成されます。
+
+## インストール方法
+ビルドが成功したら`target/debug/get-nhk-radio-livestream-url`を適当な場所に移動して、コマンドラインから実行できるようにします。
+移動先はパスの通ったディレクトリが望ましいです。もし、パスの通ったディレクトリに移動できない場合は、~/.local/binに移動することをお勧めします。
+
+```bash
+mkdir -p ~/.local/bin
+cargo build --release
+mv target/release/get-nhk-radio-livestream-url ~/.local/bin/
+```
+~/.local/binがパスに通っていなくても構いません。`nhk-radio-recorder`スクリプトの中でパスを通しています。
 
 ## ライセンス
 このソフトウェアは、[MITライセンス](./LICENSE)の下で提供されています。

@@ -7,6 +7,8 @@ History of the project development
 - [Issue #3](https://github.com/suikan4github/nhk-radio-recorder/issues/3) Need timeout for sub-process.
 
 ### Changed
+- [Issue #4](https://github.com/suikan4github/nhk-radio-recorder/issues/4) Change architecture.
+
 ### Deprecated
 ### Removed
 ### Fixed
