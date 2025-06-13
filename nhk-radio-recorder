@@ -59,15 +59,16 @@ DURATION_SECONDS=$((DURATION * 60 + 10)) # 10秒長く録音する
 timeout ${DURATION_SECONDS}s gst-launch-1.0 \
     souphttpsrc location="${STREAM_URL}" \
     ! hlsdemux \
-    ! filesink location="${RECORDING_PATH}.aac" sync=false async=false
+    ! filesink location="${RECORDING_PATH}.aac" sync=false async=false > /dev/null 2> ${RECORDING_PATH}.log
 
 # 録音ファイルの長さを切り詰める
-ffmpeg -i "${RECORDING_PATH}.aac" -t 00:${DURATION}:00 -c copy "${RECORDING_PATH}"
+ffmpeg -i "${RECORDING_PATH}.aac" -t 00:${DURATION}:00 -c copy "${RECORDING_PATH}" > /dev/null 2>> ${RECORDING_PATH}.log
 # aacファイルを削除
 rm "${RECORDING_PATH}.aac" 
 
 # 5つ目の引数が指定されている場合、mailxに録音ファイルを添付してメールを送信し、ファイルを削除する
 if [ -n "$MAILADDRESS" ]; then
-    echo "録音が完了しました: $FILENAME" | mailx -s "nhk-radio-recorder ${TITLE}" -A "$RECORDING_PATH" "$MAILADDRESS"
+    echo "録音が完了しました: $FILENAME" | mailx -s "nhk-radio-recorder ${TITLE}" -A "$RECORDING_PATH" -A ${RECORDING_PATH}.log "$MAILADDRESS"
     rm "$RECORDING_PATH"
+    rm ${RECORDING_PATH}.log -f
 fi
