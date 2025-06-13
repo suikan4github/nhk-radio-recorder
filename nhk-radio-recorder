@@ -3,7 +3,7 @@
 # NHKラジオのエアチェックを行うスクリプト
 # エアチェック結果は ~/nhk-radio-recordingsに保存される。
 
-# このスクリプトは、同じディレクトリにget-nhk-radio-livestream-urlという
+# このスクリプトは ~/.local/binにget-nhk-radio-livestream-urlという
 # バイナリが存在することを前提としている。
 
 # 引数として次のものを受け取る
@@ -32,6 +32,9 @@ if [ "$#" -lt 4 ] || [ "$#" -gt 5 ]; then
     exit 1
 fi
 
+# 環境変数の設定
+export PATH="$HOME/.local/bin:$PATH"
+
 # 引数を変数に格納
 LOCATION="$1"
 CHANNEL="$2"
@@ -49,7 +52,7 @@ if [ ! -d "$RECORDING_DIR" ]; then
 fi
 RECORDING_PATH="$RECORDING_DIR/$FILENAME"
 # ストリームURLを取得
-STREAM_URL=$(./get-nhk-radio-livestream-url aircheck --location "$LOCATION" --channel "$CHANNEL")
+STREAM_URL=$(get-nhk-radio-livestream-url aircheck --location "$LOCATION" --channel "$CHANNEL")
 # 録音の長さを計算
 DURATION_SECONDS=$((DURATION * 60 + 10)) # 10秒長く録音する
 # ストリームを録音
